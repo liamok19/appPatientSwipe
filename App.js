@@ -1,98 +1,91 @@
-import React from 'react';
-import {Dimensions, Image, StyleSheet, View} from 'react-native';
-import {PanGestureHandler, State} from 'react-native-gesture-handler';
-import Animated, {
-  add,
-  clockRunning,
-  cond,
-  debug,
-  divide,
-  eq,
-  floor,
-  not,
-  set,
-  useCode,
-} from 'react-native-reanimated';
+import React, {useState} from 'react';
 import {
-  snapPoint,
-  timing,
-  useClock,
-  usePanGestureHandler,
-  useValue,
-} from 'react-native-redash';
+  StyleSheet,
+  SafeAreaView,
+  Image,
+  Dimensions,
+  View,
+  ScrollView,
+  Text,
+} from 'react-native';
 
-const {width, height} = Dimensions.get('window');
-
-export const assets = [
-  require('./assets/3.jpg'),
-  require('./assets/2.jpg'),
-  require('./assets/4.jpg'),
-  require('./assets/5.jpg'),
-  require('./assets/1.jpg'),
+const assets = [
+  'https://cdn.pixabay.com/photo/2018/03/31/06/31/dog-3277416__340.jpg',
+  'https://cdn.pixabay.com/photo/2015/11/17/13/13/bulldog-1047518__340.jpg',
+  'https://cdn.pixabay.com/photo/2015/07/09/19/32/dog-838281__340.jpg',
 ];
 
-const snapPoints = assets.map((_, i) => i * -width);
+const WIDTH = Dimensions.get('window').width;
+const HEIGHT = Dimensions.get('window').height;
+
+const App = () => {
+  const [imageActive, setImageActive] = useState(0);
+
+  const onchange = nativeEvent => {
+    if (nativeEvent) {
+      const slide = Math.ceil(
+        nativeEvent.contentOffset.x / nativeEvent.layoutMeasurement.width,
+      );
+      if (slide != imageActive) {
+        setImageActive(slide);
+      }
+    }
+  };
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.wrap}>
+        <ScrollView
+          onScroll={({nativeEvent}) => onchange(nativeEvent)}
+          showsHorizontalScrollIndicator={false}
+          pagingEnabled
+          horizontal
+          style={styles.wrap}>
+          {assets.map((e, index) => (
+            <Image
+              key={e}
+              resizeMode="stretch"
+              style={styles.wrap}
+              source={{uri: e}}
+            />
+          ))}
+        </ScrollView>
+        <View style={styles.wrapDot}>
+          {assets.map((e, index) => (
+            <Text
+              key={e}
+              style={imageActive === index ? styles.dotActive : styles.dot}>
+              ●
+            </Text>
+          ))}
+        </View>
+      </View>
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'black',
+    // backgroundColor: 'pink',
+    flex: 1,
   },
-  pictures: {
-    width: width * assets.length,
-    height,
+  wrap: {
+    width: WIDTH,
+    height: HEIGHT * 0.25,
+  },
+  wrapDot: {
+    position: 'absolute',
+    bottom: 0,
     flexDirection: 'row',
+    alignSelf: 'center',
   },
-  picture: {
-    width,
-    height,
-    overflow: 'hidden',
+  dotActive: {
+    margi: 3,
+    colr: 'black',
   },
-  image: {
-    ...StyleSheet.absoluteFillObject,
-    width: undefined,
-    height: undefined,
+  dot: {
+    margin: 3,
+    color: '#888',
   },
 });
-
-const App = () => {
-  const clock = useClock();
-  const index = useValue(0);
-  const offsetX = useValue(0);
-  const translateX = useValue(0);
-  const {gestureHandler, state, velocity, translation} = usePanGestureHandler();
-  const to = snapPoint(translateX, velocity.x, snapPoints);
-  useCode(
-    () => [
-      cond(eq(state, State.ACTIVE), [
-        set(translateX, add(offsetX, translation.x)),
-      ]),
-      cond(eq(state, State.END), [
-        set(translateX, timing({clock, from: translateX, to})),
-        set(offsetX, translateX),
-        cond(not(clockRunning(clock)), [
-          set(index, floor(divide(translateX, -width))),
-          debug('index', index),
-        ]),
-      ]),
-    ],
-    [],
-  );
-  return (
-    <View style={styles.container}>
-      <PanGestureHandler {...gestureHandler}>
-        <Animated.View style={StyleSheet.absoluteFill}>
-          <Animated.View style={[styles.pictures, {transform: [{translateX}]}]}>
-            {assets.map(source => (
-              <View key={source} style={styles.picture}>
-                <Image style={styles.image} {...{source}} />
-              </View>
-            ))}
-          </Animated.View>
-        </Animated.View>
-      </PanGestureHandler>
-    </View>
-  );
-};
 
 export default App;
